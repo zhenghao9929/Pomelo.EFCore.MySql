@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
-using System.Linq;
+using System.Linq; 
 using System.Text;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
@@ -318,6 +318,36 @@ namespace Pomelo.EntityFrameworkCore.MySql.Update.Internal
             requiresTransaction = true;
 
             return resultSetMapping;
+        }
+
+        protected override void AppendWhereAffectedClause(
+            StringBuilder commandStringBuilder,
+            IReadOnlyList<IColumnModification> operations)
+        {
+            commandStringBuilder
+                .AppendLine()
+                .Append("WHERE ");
+
+            //AppendRowsAffectedWhereCondition(commandStringBuilder, 1);
+
+            if (operations.Count > 0)
+            {
+                commandStringBuilder
+                    //.Append(" AND ")
+                    .AppendJoin(
+                        operations, (sb, v) =>
+                        {
+                            if (v is { IsKey: true, IsRead: false })
+                            {
+                                AppendWhereCondition(sb, v, v.UseOriginalValueParameter);
+                            }
+
+                            if (IsIdentityOperation(v))
+                            {
+                                AppendIdentityWhereCondition(sb, v);
+                            }
+                        }, " AND ");
+            }
         }
 
         /// <summary>
